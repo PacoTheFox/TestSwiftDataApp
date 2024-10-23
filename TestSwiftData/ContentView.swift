@@ -9,53 +9,60 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @Environment(\.modelContext) private var context
+    
+    @Query private var works: [Works]
+    @State private var showAddWork: Bool = false
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        NavigationStack {
+            VStack {
+                
+                
+                if works.isEmpty {
+                    ContentUnavailableView("No works to show", systemImage: "list.bullet.clipboard",
+                                           description: Text("Add a work to see it here"))
+                } else {
+                    main
                 }
-                .onDelete(perform: deleteItems)
             }
+            .navigationTitle("Works")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showAddWork.toggle()
+                    } label: {
+                        Image(systemName: "plus")
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
         }
-    }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+        
+        .sheet(isPresented: $showAddWork) {
+            NewWorksView()
         }
+        
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+    
+    var main: some View {
+        List{
+            ForEach(works) { works in
+                WorksRow(works: works)
+            }
+            .onDelete { index in
+                if let v = index.first {
+                    context.delete(works[v])
+                }
+                
             }
         }
+        
     }
 }
 
-#Preview {
+#Preview(traits: .sampleData) {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
+
+
